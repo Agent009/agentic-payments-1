@@ -8,6 +8,12 @@ This project implements [Story Protocol](https://docs.story.foundation/docs/ai-a
 - **Consumer Agent**: Runs an NFT marketplace (must be registered on Story)
 - **Provider Agent**: Can be an NFT minter or trader (may be registered on Story)
 
+An example collection of agents with registered IPAs are available [here](https://explorer.story.foundation/collections/0x5fE689735B689481CA95Cd8BAf152d1a3336BdB7).
+
+* [NFT Marketplace Agent](https://explorer.story.foundation/ipa/0x54d132eB067e1FaA1e33bc6dDB4e3c4b51EDc0dc)
+* [NFT Minter Agent](https://explorer.story.foundation/ipa/0x398811Ff40Ce783738405D9ED1eaE7a7e79C95A3)
+* [NFT Trader Agent](https://explorer.story.foundation/ipa/0x3Fd5cedcBaAebe32C9d18650332C9be2F83e3609)
+
 ### 🔄 Transaction Flow
 
 1. **Request Initiation**
