@@ -1,0 +1,208 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ===> Next-Auth
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.String
+  access_token      String? @db.String
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.String
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String   @db.ObjectId
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  name           String?
+  email          String?   @unique
+  emailVerified  DateTime?
+  image          String?
+  hashedPassword String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  notifications Notification[]
+  settings      Json?
+}
+
+// ===> Agentic Payments
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// Enum for request status
+enum RequestStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+}
+
+// Enum for terms status
+enum TermsStatus {
+  DRAFT
+  COUNTER_OFFER
+  FINALIZED
+  ACCEPTED
+  REJECTED
+}
+
+// Enum for license scope
+enum LicenseScope {
+  PERSONAL
+  COMMERCIAL
+  SUBLICENSABLE
+}
+
+// Enum for delivery status
+enum DeliveryStatus {
+  PENDING
+  IN_PROGRESS
+  DELIVERED
+  CONFIRMED
+}
+
+// Enum for payment status
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model Agent {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  image       String
+  uri         String? // URI for agent metadata
+  ipaAddress  String @unique // Story IPA contract address
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  agentInformationRequests AgentInformationRequest[]
+  consumerTermsFormulation AgentTermsFormulation[]   @relation("ConsumerTermsFormulation")
+  providerTermsFormulation AgentTermsFormulation[]   @relation("ProviderTermsFormulation")
+}
+
+model AgentInformationRequest {
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  requesterId   String        @db.ObjectId
+  requester     Agent         @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+  ipType        String
+  ipId          String?
+  ipUri         String?
+  proposedUsage String
+  duration      String
+  metadata      Json? // Additional data about the request
+  status        RequestStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  agentTermsFormulations AgentTermsFormulation[]
+}
+
+model AgentTermsFormulation {
+  id         String                  @id @default(auto()) @map("_id") @db.ObjectId
+  requestId  String                  @db.ObjectId
+  request    AgentInformationRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  consumerId String                  @db.ObjectId
+  consumer   Agent                   @relation("ConsumerTermsFormulation", fields: [consumerId], references: [id], onDelete: Cascade)
+  providerId String                  @db.ObjectId
+  provider   Agent                   @relation("ProviderTermsFormulation", fields: [providerId], references: [id], onDelete: Cascade)
+
+  // Fields for PILTerms
+  transferable              Boolean   @default(false)
+  royaltyPolicy             String?   @db.ObjectId // Address of royalty policy contract
+  defaultMintingFee         Float? // Fee for minting licenses
+  expiration                DateTime? // Expiration date for license
+  commercialUse             Boolean   @default(false) // Allow commercial use
+  commercialAttribution     Boolean   @default(false) // Require attribution for commercial use
+  commercializerChecker     String?   @db.ObjectId // Address of commercializer checker contract
+  commercializerCheckerData String? // Data for commercializer checks
+  commercialRevShare        Int? // Revenue share percentage for commercial use
+  commercialRevCeiling      Float? // Max revenue share for commercial use
+  derivativesAllowed        Boolean   @default(false) // Allow derivatives
+  derivativesAttribution    Boolean   @default(false) // Require attribution for derivatives
+  derivativesApproval       Boolean   @default(false) // Require approval for derivatives
+  derivativesReciprocal     Boolean   @default(false) // Reciprocal terms for derivatives
+  derivativeRevCeiling      Float? // Max revenue share for derivatives
+  currency                  String? // Currency address for payments
+  uri                       String? // URI for license metadata
+
+  // Negotiation and status fields
+  negotiationHistory Json? // Log of negotiation steps
+  status             TermsStatus @default(DRAFT) // Draft, Counter-offer, Finalized, Accepted
+  finalizedAt        DateTime? // Timestamp when terms are finalized
+
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  LicenseToken LicenseToken[]
+}
+
+model LicenseToken {
+  id             String                @id @default(auto()) @map("_id") @db.ObjectId
+  termsId        String                @db.ObjectId
+  terms          AgentTermsFormulation @relation(fields: [termsId], references: [id], onDelete: Cascade)
+  licenseTermsId Int?
+  tokenId        Int?
+  paymentStatus  PaymentStatus         @default(PENDING)
+  issuedAt       DateTime?
+  expiryDate     DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  IPDelivery     IPDelivery[]
+}
+
+model IPDelivery {
+  id                  String           @id @default(auto()) @map("_id") @db.ObjectId
+  licenseTokenId      String           @db.ObjectId
+  licenseToken        LicenseToken     @relation(fields: [licenseTokenId], references: [id], onDelete: Cascade)
+  deliveryMedium      String? // Medium of delivery (e.g., IPFS, Masumi)
+  deliveryDetails     Json? // Metadata about delivery (e.g., IPFS link)
+  status              DeliveryStatus   @default(PENDING)
+  confirmedByReceiver Boolean          @default(false)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  Acknowledgment      Acknowledgment[]
+}
+
+model Acknowledgment {
+  id             String     @id @default(auto()) @map("_id") @db.ObjectId
+  deliveryId     String     @db.ObjectId
+  delivery       IPDelivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  acknowledgedAt DateTime // Timestamp when receipt was acknowledged
+  comments       String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}

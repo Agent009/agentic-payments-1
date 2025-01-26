@@ -1,0 +1,9 @@
+# Without lint-staged
+#prettier $(git diff --cached --name-only --diff-filter=ACMR | sed 's| |\\ |g') --write --ignore-unknown
+#git update-index --again
+
+# With lint-staged
+npx lint-staged
+
+# Uncomment to test hook without committing
+#exit 1

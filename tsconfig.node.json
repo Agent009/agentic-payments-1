@@ -1,0 +1,27 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmit": false,
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["./*"],
+      "@app/*": ["./app/*"],
+      "@api/*": ["./app/api/*"],
+      "@actions/*": ["./app/actions/*"],
+      "@context/*": ["./components/context/*"],
+      "@components/*": ["./components/*"],
+      "@customTypes/*": ["./types/*"],
+      "@forms/*": ["./components/forms/*"],
+      "@hooks/*": ["./hooks/*"],
+      "@lib/*": ["./lib/*"],
+      "@prisma/*": ["./prisma/*"],
+      "@public/*": ["./public/*"],
+      "@story/*": ["./story/*"],
+      "@styles/*": ["./app/styles/*"],
+      "@ui/*": ["./components/ui/*"]
+    }
+  },
+  "include": ["story/**/*.ts", "prisma/**/*.ts"]
+}
